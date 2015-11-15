@@ -36,7 +36,6 @@ import           Servant
 
 import           DerivedTypes
 
-import Debug.Trace
 
 share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
 Contact
@@ -171,9 +170,7 @@ searchQ Nothing =
       on (just (c ^. ContactId) ==. a ?. AttributeContactId)
       orderBy [ asc (c ^. ContactId), asc (a ?. AttributeName) ]
       return (c,a)
-searchQ (Just n) 
-  | traceShow (Email n) False = undefined
-  | otherwise =
+searchQ (Just n) =
   select $
     from $ \(c `LeftOuterJoin` a) -> do
       on (just (c ^. ContactId) ==. a ?. AttributeContactId)
