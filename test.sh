@@ -19,7 +19,7 @@ curl -H "Content-Type: application/json" -d "{\"email\":\"okemail@example.com\",
 printf "\nadd post request with invalid email and invalid phone\n"
 curl -H "Content-Type: application/json" -d "{\"email\":\"bademail.@example.com\",\"phone\":\"1111\",\"attributes\":[[\"name\",\"invalid both\"]]}" 127.0.0.1:8080/add
 
-printf "\nsearch\n"
+printf "\nsearch all\n"
 curl 127.0.0.1:8080/search
 
 printf "\nadding more contacts\n"
@@ -31,20 +31,25 @@ curl -H "Content-Type: application/json" -d "{\"email\":\"temp1@temp.temp\",\"ph
 printf "\n\n"
 curl -H "Content-Type: application/json" -d "{\"email\":\"temp2@temp.temp\",\"phone\":\"2776665555\",\"attributes\":[[\"name\",\"temp2\"]]}" 127.0.0.1:8080/add
 
+printf "\nsearch?for=temp0\n"
+curl 127.0.0.1:8080/search?for=temp0
+
 printf "\nsingle delete post request example\n"
 curl -H "Content-Type: application/json" -d "[4]" 127.0.0.1:8080/delete
 
 printf "\nmultiple delete post request example\n"
 curl -H "Content-Type: application/json" -d "[5,6]" 127.0.0.1:8080/delete
 
-printf "\nsearch\n"
-curl 127.0.0.1:8080/search
+printf "\nsearch?for=temp0\n"
+curl 127.0.0.1:8080/search?for=temp0
 
 printf "\nupdate contact with new attribute\n"
 curl -H "Content-Type: application/json" -d "[1,[[\"updated\",\"true\"]]]" 127.0.0.1:8080/update
 
-printf "\nupdate contact that does not exist with new attribute (nothing happens)\n"
-curl -H "Content-Type: application/json" -d "[99,[[\"updated\",\"true\"]]]" 127.0.0.1:8080/update
+printf "\nupdate contact that does not exist with new attribute (something will go wrong)\n"
+curl -H "Content-Type: application/json" -d "[999,[[\"exist\",\"shouldnotexist\"]]]" 127.0.0.1:8080/update
+curl 127.0.0.1:8080/search?for=shouldnotexist
+
 
 printf "\nupdate contact email\n"
 curl -H "Content-Type: application/json" -d "[1,[[\"email\",\"update@email.com\"]]]" 127.0.0.1:8080/update
@@ -60,6 +65,7 @@ curl -H "Content-Type: application/json" -d "[1,[[\"email\",\"wat\"]]]" 127.0.0.
 
 printf "\nupdate contact multiple attributes\n"
 curl -H "Content-Type: application/json" -d "[1,[[\"updated\",\"truetrue\"],[\"birthday\",\"the ides of march\"]]]" 127.0.0.1:8080/update
+curl -H "Content-Type: application/json" -d "[2,[[\"updated\",\"truetrue\"],[\"birthday\",\"also the ides of march\"]]]" 127.0.0.1:8080/update
 
 printf "\nsearch\n"
 curl 127.0.0.1:8080/search
