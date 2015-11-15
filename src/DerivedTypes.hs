@@ -10,7 +10,7 @@ import qualified Data.Text               as T
 import qualified Data.Text.Encoding      as T
 import           Database.Persist.TH
 import           GHC.Generics            (Generic)
-import qualified Text.Email.Validate     as E (isValid, validate)
+import qualified Text.Email.Validate     as E (isValid, validate, toByteString)
 
 
 newtype Phone = Phone { runPhone :: Text } deriving (Eq,Read,Show,Generic)
@@ -32,7 +32,9 @@ validEmail = E.isValid . T.encodeUtf8
 
 
 validateEmail :: Text -> Either Text Email
-validateEmail = mapBoth T.pack (Email . T.pack . show) . E.validate . T.encodeUtf8
+validateEmail =
+  mapBoth T.pack (Email . T.decodeUtf8 . E.toByteString)
+  . E.validate . T.encodeUtf8
 
 
 validatePhone :: Text -> Either Text Phone

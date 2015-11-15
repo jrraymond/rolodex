@@ -36,7 +36,7 @@ import           Servant
 
 import           DerivedTypes
 
-
+import Debug.Trace
 
 share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
 Contact
@@ -48,6 +48,7 @@ Attribute
   contactId   ContactId
   name        Text
   value       Text
+  UniqueAttr  contactId name
   deriving Eq Read Show Generic
 |]
 
@@ -71,9 +72,9 @@ mkContactOut (Entity k (Contact (Email em) (Phone ph))) attrs =
 
 
 type UserAPI = "search" :> QueryParam "for" Text :> Get '[JSON] [ContactOut]
-           :<|> "add" :> ReqBody '[JSON] ContactIn :> Post '[JSON] (Either Text ContactIn)
-           :<|> "delete" :> ReqBody '[JSON] [Key Contact] :> Post '[JSON] Int64
-           :<|> "update" :> ReqBody '[JSON] (Key Contact,[(Text,Text)]) :> Post '[JSON] ()
+          :<|> "add" :> ReqBody '[JSON] ContactIn :> Post '[JSON] (Either Text ContactIn)
+          :<|> "delete" :> ReqBody '[JSON] [Key Contact] :> Post '[JSON] Int64
+          :<|> "update" :> ReqBody '[JSON] (Key Contact,[(Text,Text)]) :> Post '[JSON] ()
 
 
 server :: ConnectionPool -> Server UserAPI
@@ -150,7 +151,7 @@ deleteQ k = do
 - Returns the id of the new contact.
 - precondition: email and phone are valid
 - -}
-addQ :: MonadIO m =>Email -> Phone -> [(Text, Text)] -> ReaderT SqlBackend m (Key Contact)
+addQ :: MonadIO m => Email -> Phone -> [(Text, Text)] -> ReaderT SqlBackend m (Key Contact)
 addQ em ph opts = do
   k <- insert (Contact em ph)
   _ <- insertMany (map (uncurry  (Attribute k)) opts)
@@ -170,7 +171,9 @@ searchQ Nothing =
       on (just (c ^. ContactId) ==. a ?. AttributeContactId)
       orderBy [ asc (c ^. ContactId), asc (a ?. AttributeName) ]
       return (c,a)
-searchQ (Just n) =
+searchQ (Just n) 
+  | traceShow (Email n) False = undefined
+  | otherwise =
   select $
     from $ \(c `LeftOuterJoin` a) -> do
       on (just (c ^. ContactId) ==. a ?. AttributeContactId)
