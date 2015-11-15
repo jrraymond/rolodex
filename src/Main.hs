@@ -114,7 +114,7 @@ upsertAttributes cid = mapM_ stmt
   where
     stmt (n,v) =
       let k = T.pack . show . fromSqlKey $ cid
-          vals = "(" <> k <> ",\"" <> n <> "\",\"" <> v <> "\")"
+          vals = "((select id from contact where id = " <> k <> "),\"" <> n <> "\",\"" <> v <> "\")"
           q = "INSERT OR REPLACE INTO attribute (contact_id,name,value) VALUES " <> vals <> ";"
       in rawExecute q ([] :: [PersistValue])
 
