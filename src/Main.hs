@@ -15,6 +15,7 @@
 
 import           Control.Monad.Logger                 (runNoLoggingT)
 import           Control.Monad.Reader
+import           Control.Monad.Trans.Either
 import           Data.Aeson
 import           Data.Either                          (isRight)
 import qualified Data.Function                        as F (on)
@@ -71,8 +72,8 @@ mkContactOut (Entity k (Contact (Email em) (Phone ph))) attrs =
 
 
 type UserAPI = "search" :> QueryParam "for" Text :> Get '[JSON] [ContactOut]
-          :<|> "add" :> ReqBody '[JSON] ContactIn :> Post '[JSON] (Either Text ContactIn)
-          :<|> "delete" :> ReqBody '[JSON] [Key Contact] :> Post '[JSON] Int64
+          :<|> "add" :> ReqBody '[JSON] ContactIn :> Post '[JSON] ContactIn --ServantErr --(Either Text ContactIn)
+          :<|> "delete" :> ReqBody '[JSON] [Key Contact] :> Post '[JSON] ()
           :<|> "update" :> ReqBody '[JSON] (Key Contact,[(Text,Text)]) :> Post '[JSON] ()
 
 
@@ -83,12 +84,12 @@ server pool = searchR :<|> addR :<|> deleteR :<|> updateR
     deleteR ks = runSqlPool (deleteQ ks) pool
     searchR n = queryToContactIns <$> runSqlPool (searchQ n) pool
     addR nc = case validateEmail . email $ nc of
-               Left err -> return $ Left err
-               Right em -> case validatePhone . phone $ nc of
-                             Left err -> return $ Left err
-                             Right ph -> do let q = addQ em ph (attributes nc)
-                                            _ <- runSqlPool q pool
-                                            return $ Right nc
+                 Left err -> left err400
+                 Right em -> case validatePhone . phone $ nc of
+                               Left err -> left err400
+                               Right ph -> do let q = addQ em ph (attributes nc)
+                                              _ <- runSqlPool q pool
+                                              right nc
 
 
 updatePhone :: MonadIO m => Key Contact -> Phone -> SqlPersistT m ()
@@ -139,11 +140,11 @@ updateQ (k,attrs) = do
 {- Deletes all contacts and their attributes if the contact id is in
 - the given list. Returns the number of contacts deleted
 -}
-deleteQ :: MonadIO m => [Key Contact] -> ReaderT SqlBackend m Int64
+deleteQ :: MonadIO m => [Key Contact] -> ReaderT SqlBackend m ()
 deleteQ k = do
   n <- deleteCount (from (\c -> where_ (c ^. ContactId `in_` valList k)))
   delete (from (\a -> where_ (a ^.AttributeContactId `in_` valList k)))
-  return n
+  return ()
 
 
 {- Adds a new contact with the email and phone.
