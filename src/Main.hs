@@ -72,7 +72,7 @@ mkContactOut (Entity k (Contact (Email em) (Phone ph))) attrs =
 
 
 type UserAPI = "search" :> QueryParam "for" Text :> Get '[JSON] [ContactOut]
-          :<|> "add" :> ReqBody '[JSON] ContactIn :> Post '[JSON] ContactIn --ServantErr --(Either Text ContactIn)
+          :<|> "add" :> ReqBody '[JSON] ContactIn :> Post '[JSON] ContactIn
           :<|> "delete" :> ReqBody '[JSON] [Key Contact] :> Post '[JSON] ()
           :<|> "update" :> ReqBody '[JSON] (Key Contact,[(Text,Text)]) :> Post '[JSON] ()
 
@@ -82,7 +82,7 @@ server pool = searchR :<|> addR :<|> deleteR :<|> updateR
   where
     updateR attrs = runSqlPool (updateQ attrs) pool
     deleteR ks = runSqlPool (deleteQ ks) pool
-    searchR n = queryToContactIns <$> runSqlPool (searchQ n) pool
+    searchR n = queryToContactOuts <$> runSqlPool (searchQ n) pool
     addR nc = case validateEmail . email $ nc of
                  Left err -> left err400
                  Right em -> case validatePhone . phone $ nc of
@@ -181,8 +181,8 @@ searchQ (Just n) =
       return (c,a)
 
 
-queryToContactIns :: [(Entity Contact, Maybe (Entity Attribute))] -> [ContactOut]
-queryToContactIns = toContactIn . squash . groupByContact
+queryToContactOuts :: [(Entity Contact, Maybe (Entity Attribute))] -> [ContactOut]
+queryToContactOuts = toContactIn . squash . groupByContact
   where
     groupByContact = L.groupBy ((==) `F.on` fst)
     keepJusts = map fromJust . filter isJust . map snd
